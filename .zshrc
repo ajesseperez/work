@@ -1,6 +1,102 @@
 # =============================================================================
-# BASIC ZSH CONFIGURATION
+# SETUP FUNCTION - Run this to install all dependencies
 # =============================================================================
+function zsh_setup_everything() {
+  echo "🚀 Setting up your ZSH environment with all dependencies..."
+  
+  # Check if Homebrew is installed
+  if ! command -v brew &> /dev/null; then
+    echo "📦 Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  else
+    echo "✅ Homebrew already installed"
+  fi
+  
+  # Install essential tools with Homebrew
+  echo "📦 Installing core tools with Homebrew..."
+  brew install fzf jq wget curl ripgrep fd pyenv
+  
+  # Install fzf key bindings and fuzzy completion
+  echo "🔧 Setting up fzf key bindings and completion..."
+  $(brew --prefix)/opt/fzf/install --all
+  
+  # Check if Oh-My-Zsh is installed
+  if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    echo "📦 Installing Oh-My-Zsh..."
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  else
+    echo "✅ Oh-My-Zsh already installed"
+  fi
+  
+  # Create custom plugins directory
+  echo "🔧 Setting up custom plugins directories..."
+  mkdir -p ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins
+  mkdir -p ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes
+  
+  # Install zsh-autosuggestions
+  if [ ! -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" ]; then
+    echo "📦 Installing zsh-autosuggestions..."
+    git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+  else
+    echo "✅ zsh-autosuggestions already installed"
+  fi
+  
+  # Install zsh-syntax-highlighting
+  if [ ! -d "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting" ]; then
+    echo "📦 Installing zsh-syntax-highlighting..."
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+  else
+    echo "✅ zsh-syntax-highlighting already installed"
+  fi
+  
+  # Check and install required Python version
+  echo "🐍 Setting up Python environment..."
+  if ! command -v pyenv &> /dev/null; then
+    echo "⚠️ pyenv not installed, but we just installed it with brew"
+  else
+    # Install Python 3.8 if not already installed
+    if ! pyenv versions | grep -q "3.8"; then
+      echo "📦 Installing Python 3.8 with pyenv..."
+      pyenv install 3.8
+      pyenv global 3.8
+    else
+      echo "✅ Python 3.8 already installed"
+    fi
+  fi
+  
+  # Check if kubectl is installed
+  if ! command -v kubectl &> /dev/null; then
+    echo "📦 Installing kubectl..."
+    brew install kubectl
+  else
+    echo "✅ kubectl already installed"
+  fi
+  
+  # Check if terraform is installed
+  if ! command -v terraform &> /dev/null; then
+    echo "📦 Installing terraform..."
+    brew install terraform
+  else
+    echo "✅ terraform already installed"
+  fi
+  
+  # Check if podman is installed
+  if ! command -v podman &> /dev/null; then
+    echo "📦 Installing podman..."
+    brew install podman
+  else
+    echo "✅ podman already installed"
+  fi
+  
+  # Enable the plugins in .zshrc
+  echo "🔧 Updating plugins in .zshrc..."
+  sed -i '' 's/# zsh-autosuggestions/zsh-autosuggestions/' $HOME/.zshrc
+  sed -i '' 's/# zsh-syntax-highlighting/zsh-syntax-highlighting/' $HOME/.zshrc
+  sed -i '' 's/# fzf/fzf/' $HOME/.zshrc
+  
+  echo "✨ Setup complete! Please restart your terminal or run 'source ~/.zshrc' to apply changes."
+}
+
 # Disable EOL mark and set prompt behavior
 setopt PROMPT_CR
 setopt PROMPT_SP
