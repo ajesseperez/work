@@ -14,7 +14,7 @@ function zsh_setup_everything() {
   
   # Install essential tools with Homebrew
   echo "📦 Installing core tools with Homebrew..."
-  brew install fzf jq wget curl ripgrep fd
+  brew install fzf jq wget curl ripgrep fd bat eza git-delta htop tldr
   
   # Install fzf key bindings and fuzzy completion
   echo "🔧 Setting up fzf key bindings and completion..."
@@ -267,9 +267,33 @@ fi
 # ALIASES
 # =============================================================================
 # =============================================================================
+# DEBUGGING HELPERS
+# =============================================================================
+# Debug function to see which aliases are active and where they came from
+function debug_aliases() {
+  echo "Current aliases:"
+  alias | grep -E '(ls|ll|la)='
+  
+  echo "\nAlias sources:"
+  for f in ${(o)fpath}; do
+    grep -l "alias ls" $f/*(-.) 2>/dev/null
+  done
+  
+  echo "\nPlugin checks:"
+  for plugin in ${plugins[@]}; do
+    echo "Checking plugin: $plugin"
+    grep -l "alias ls" $ZSH/plugins/$plugin/*.zsh(-.) 2>/dev/null
+  done
+  
+  echo "\nCommand type information:"
+  type ls
+  type eza 2>/dev/null || echo "eza not found"
+}
+
+
+# =============================================================================
 # PYTHON ENVIRONMENT MANAGEMENT
 # =============================================================================
-# Python aliases and functions
 alias python=python3
 alias py="python3"
 alias pip="uv pip"
@@ -392,23 +416,194 @@ function uvrun() {
 }
 
 # =============================================================================
-# CUSTOM FUNCTIONS
+# GIT ALIASES AND FUNCTIONS
 # =============================================================================
+# Enhanced git log aliases
+alias gl="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit"
+alias gll="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --all"
+alias glb="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --branches"
+
+# Git status shortcuts
+alias gs="git status -s"
+alias gss="git status"
+
+# Git branch operations
+alias gb="git branch"
+alias gba="git branch -a"
+alias gbd="git branch -d"
+alias gbD="git branch -D"
+
+# Checkout operations
+alias gco="git checkout"
+alias gcob="git checkout -b"
+alias gcom="git checkout main || git checkout master"
+
+# Commit operations
+alias gc="git commit -v"
+alias gca="git commit -v --amend"
+alias gcaa="git commit -v --amend --no-edit"
+
+# Stash operations
+alias gst="git stash"
+alias gsta="git stash apply"
+alias gstp="git stash pop"
+alias gstl="git stash list"
+alias gsts="git stash show -p"
+
+# Other useful git shortcuts
+alias gd="git diff"
+alias gds="git diff --staged"
+alias gp="git push"
+alias gpl="git pull"
+alias grb="git rebase"
+alias grbi="git rebase -i"
+alias grs="git reset"
+alias grsh="git reset --hard"
+alias ga="git add"
+alias gaa="git add -A"
+
+# Enhanced git functions
+function gsw() {
+  # Git switch with fuzzy finding if no branch specified
+  if [ -z "$1" ]; then
+    local branches=$(git branch --format='%(refname:short)')
+    local branch=$(echo "$branches" | fzf --height 40% --reverse)
+    [ -n "$branch" ] && git switch "$branch"
+  else
+    git switch "$@"
+  fi
+}
+
+function gcm() {
+  # Git commit with message, default to "Update" if no message provided
+  if [ -z "$1" ]; then
+    git commit -m "Update"
+  else
+    git commit -m "$1"
+  fi
+}
+
+function grv() {
+  # Git review - show changes in the last n commits (default: 1)
+  local count=${1:-1}
+  git log -p -n "$count"
+}
+
+function gclean() {
+  # Clean up git branches
+  echo "Fetching latest changes and pruning remote branches..."
+  git fetch -p
+  
+  echo "Showing local branches that have been merged into main/master..."
+  local main_branch=$(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+  git branch --merged "$main_branch" | grep -v "\* $main_branch" | xargs -n 1 echo
+  
+  echo "Would you like to delete these branches? (y/n)"
+  read answer
+  if [[ $answer == "y" ]]; then
+    git branch --merged "$main_branch" | grep -v "\* $main_branch" | xargs -n 1 git branch -d
+    echo "Branches deleted."
+  else
+    echo "No branches were deleted."
+  fi
+}
+
+function ghist() {
+  # Git file history - show history of a file with changes
+  if [ -z "$1" ]; then
+    echo "Usage: ghist <file>"
+    return 1
+  fi
+  
+  git log --follow -p -- "$1"
+}
+
+# Git stats functions
+function gstat() {
+  # Simple git stats
+  echo "Commit stats by author:"
+  git shortlog -sn --all
+  
+  echo "\nTotal commits:"
+  git rev-list --count --all
+  
+  echo "\nFile count:"
+  git ls-files | wc -l
+}
+
+function gcontrib() {
+  # Show contributor stats for current repo
+  git log --pretty=format:"%an" | sort | uniq -c | sort -rn
+}
+
+# Git bisect helper
+function gbisect() {
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Usage: gbisect <good_ref> <bad_ref> [<command_to_test>]"
+    return 1
+  fi
+  
+  git bisect start
+  git bisect good "$1"
+  git bisect bad "$2"
+  
+  if [ -n "$3" ]; then
+    git bisect run "$3"
+  else
+    echo "Bisect started. Run your tests and use:"
+    echo "  - git bisect good (if current commit is good)"
+    echo "  - git bisect bad (if current commit is bad)"
+    echo "When finished, run 'git bisect reset'"
+  fi
+}
+
+# =============================================================================
+# MODERN CLI TOOLS
+# =============================================================================
+# Modern CLI tool aliases
+if command -v bat &> /dev/null; then
+  alias cat="bat --paging=never"
+  alias less="bat"
+fi
+
+# Check for eza installation and use it for better ls
+if command -v eza &> /dev/null; then
+  # Completely unalias any existing ls aliases first
+  unalias ls ll la 2>/dev/null
+  
+  # Create new aliases with eza
+  alias ls="eza"
+  alias ll="eza -la"
+  alias la="eza -a"
+  alias lt="eza -T --git-ignore" # Tree view
+  alias lg="eza -la --git" # Show git status
+else
+  # Fall back to standard ls with colors
+  alias ls="ls -G"
+  alias ll="ls -la"
+  alias la="ls -a"
+fi
+
+if command -v tldr &> /dev/null; then
+  alias help="tldr"
+fi
 
 # System aliases
 alias whitespace="sed 's/ /·/g;s/\t/￫/g;s/\r/§/g;s/$/¶/g'"
-alias ls="ls -G"
-alias ll="ls -la"
-alias la="ls -a"
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
+
+# Fallback aliases if modern tools aren't installed
+# This section is now handled within each tool's section above
 
 # Network aliases
 alias acurl='curl -sS -o /dev/null -kL -w "\n       Connect To: %{remote_ip}:%{remote_port}\n\n        HTTP Code: %{http_code}\n     HTTP Version: %{http_version}\n    Download Size: %{size_download} bytes\n\n\n   DNS Resolution: %{time_namelookup}\n      TCP Connect: %{time_connect}\n SSL Negiotiation: %{time_appconnect}\n     Pre-Transfer: %{time_pretransfer}\n       First-Byte: %{time_starttransfer}\n--------------------------\n       Total time: %{time_total}\n\n"'
 alias myip="curl -s https://ifconfig.me"
 alias localip="ipconfig getifaddr en0"
-# Update all tools at once
+# =============================================================================
+# CUSTOM FUNCTIONS
+# =============================================================================
 function steep() {
   echo "Updating Homebrew packages..."
   brew upgrade
@@ -501,15 +696,38 @@ function change_commit_message() {
 
 # Quick find function - search for files in current directory
 function qf() {
-  find . -type f -name "*$1*" | grep -v "node_modules\|.git"
+  if [ -z "$1" ]; then
+    echo "Usage: qf <search_pattern>"
+    return 1
+  fi
+  
+  # Use find with 2>/dev/null to suppress permission errors
+  find . -type f -name "*$1*" 2>/dev/null | grep -v "node_modules\|.git\|Library" | sort
+}
+
+# More advanced file search with preview
+function ff() {
+  if [ -z "$1" ]; then
+    echo "Usage: ff <search_pattern>"
+    return 1
+  fi
+  
+  # Check if we have fd-find installed (much faster than find)
+  if command -v fd &> /dev/null; then
+    # Use fd if available
+    fd --type f --hidden --exclude .git --exclude node_modules --exclude Library "$1" | sort
+  else
+    # Fall back to find
+    find . -type f -name "*$1*" 2>/dev/null | grep -v "node_modules\|.git\|Library" | sort
+  fi
 }
 
 # =============================================================================
 # FINAL SETTINGS & ENVIRONMENT VARIABLES
 # =============================================================================
 # Set editor preference
-export EDITOR='vim'
-export VISUAL='vim'
+export EDITOR='nano'
+export VISUAL='nano'
 
 # Enable color support
 export CLICOLOR=1
