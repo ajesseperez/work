@@ -14,7 +14,7 @@ function zsh_setup_everything() {
   
   # Install essential tools with Homebrew
   echo "📦 Installing core tools with Homebrew..."
-  brew install fzf jq wget curl ripgrep fd pyenv
+  brew install fzf jq wget curl ripgrep fd
   
   # Install fzf key bindings and fuzzy completion
   echo "🔧 Setting up fzf key bindings and completion..."
@@ -49,20 +49,29 @@ function zsh_setup_everything() {
     echo "✅ zsh-syntax-highlighting already installed"
   fi
   
-  # Check and install required Python version
-  echo "🐍 Setting up Python environment..."
-  if ! command -v pyenv &> /dev/null; then
-    echo "⚠️ pyenv not installed, but we just installed it with brew"
+  # Set up Python with uv
+  echo "🐍 Setting up Python environment with uv..."
+  if ! command -v uv &> /dev/null; then
+    echo "📦 Installing uv..."
+    curl -fsSL https://raw.githubusercontent.com/astral-sh/uv/main/install.sh | bash
   else
-    # Install Python 3.8 if not already installed
-    if ! pyenv versions | grep -q "3.8"; then
-      echo "📦 Installing Python 3.8 with pyenv..."
-      pyenv install 3.8
-      pyenv global 3.8
-    else
-      echo "✅ Python 3.8 already installed"
-    fi
+    echo "✅ uv already installed"
   fi
+  
+  # Configure uv defaults
+  mkdir -p ~/.config/uv
+  cat > ~/.config/uv/config.toml << EOF
+[python]
+# Use the system Python by default
+# You can override this with UV_PYTHON_PATH environment variable
+python-path = "$(which python3)"
+
+[virtualenv]
+# Where to store virtual environments by default
+virtualenv-path = "~/.venvs"
+EOF
+
+  echo "✅ uv configured successfully"
   
   # Check if kubectl is installed
   if ! command -v kubectl &> /dev/null; then
@@ -139,9 +148,10 @@ plugins=(
     python
     macos
     brew
-    zsh-autosuggestions
-    zsh-syntax-highlighting
-    fzf
+    # External plugins - uncomment after installing with zsh_setup_everything:
+    # zsh-autosuggestions
+    # zsh-syntax-highlighting
+    # fzf
     colored-man-pages
 )
 
@@ -205,10 +215,14 @@ path_prepend "/usr/local/bin"
 path_prepend "/usr/local/opt/curl/bin"
 path_prepend "/usr/local/opt/python@3.8/bin"
 
-# Pyenv configuration
-export PYENV_ROOT="$HOME/.pyenv"
-path_prepend "$PYENV_ROOT/bin"
-eval "$(pyenv init - zsh)"
+# Python environment configuration
+# Add uv to path if installed via the installer script
+if [ -d "$HOME/.cargo/bin" ]; then
+  path_prepend "$HOME/.cargo/bin"
+fi
+
+# Add ~/.local/bin to PATH for Python user installations
+path_prepend "$HOME/.local/bin"
 
 # Export final PATH
 export PATH
@@ -252,8 +266,136 @@ fi
 # =============================================================================
 # ALIASES
 # =============================================================================
-# System aliases
+# =============================================================================
+# PYTHON ENVIRONMENT MANAGEMENT
+# =============================================================================
+# Python aliases and functions
 alias python=python3
+alias py="python3"
+alias pip="uv pip"
+alias pipup="uv pip install --upgrade"
+
+# Create a Python virtual environment using uv
+function uvenv() {
+  local proj_name=${1:-$(basename "$PWD")}
+  local venv_path="$HOME/.venvs/$proj_name"
+  
+  if [ -d "$venv_path" ]; then
+    echo "⚠️ Virtual environment already exists: $venv_path"
+    echo "Use 'uv pip install' to install packages"
+    echo "Use 'UV_VENV=$proj_name command' to run a command in this environment"
+    return 0
+  fi
+  
+  echo "🔧 Creating new virtual environment: $proj_name"
+  uv venv "$venv_path"
+  
+  echo "✅ Virtual environment created at $venv_path"
+  echo "Use 'uv pip install' to install packages"
+  echo "Use 'UV_VENV=$proj_name command' to run a command in this environment"
+}
+
+# Project management with uv
+function uvproj() {
+  local cmd="$1"
+  shift
+  
+  case "$cmd" in
+    create)
+      local proj_name="$1"
+      if [ -z "$proj_name" ]; then
+        echo "⚠️ Please provide a project name"
+        return 1
+      fi
+      
+      echo "🚀 Creating new Python project: $proj_name"
+      mkdir -p "$proj_name"
+      cd "$proj_name"
+      
+      # Create a virtual environment
+      uvenv "$proj_name"
+      
+      # Initialize git
+      git init
+      echo ".venv/" > .gitignore
+      echo "__pycache__/" >> .gitignore
+      echo "*.pyc" >> .gitignore
+      
+      # Create basic project structure
+      mkdir -p "$proj_name"
+      touch "$proj_name/__init__.py"
+      touch README.md
+      
+      # Create pyproject.toml
+      cat > pyproject.toml << EOF
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "$proj_name"
+version = "0.1.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "isort",
+    "mypy",
+]
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+EOF
+      
+      echo "✅ Project created successfully"
+      ;;
+    list)
+      echo "🔍 Available virtual environments:"
+      ls -1 "$HOME/.venvs" | sort
+      ;;
+    *)
+      echo "Unknown command: $cmd"
+      echo "Available commands: create, list"
+      ;;
+  esac
+}
+
+# Run a Python script in a specific virtual environment
+function uvrun() {
+  local venv_name="$1"
+  shift
+  
+  if [ -z "$venv_name" ]; then
+    echo "⚠️ Please specify a virtual environment name"
+    echo "Available environments:"
+    ls -1 "$HOME/.venvs" | sort
+    return 1
+  fi
+  
+  if [ ! -d "$HOME/.venvs/$venv_name" ]; then
+    echo "⚠️ Virtual environment not found: $venv_name"
+    echo "Use 'uvenv $venv_name' to create it first"
+    return 1
+  fi
+  
+  echo "🔧 Running in environment: $venv_name"
+  UV_VENV="$venv_name" "$@"
+}
+
+# =============================================================================
+# CUSTOM FUNCTIONS
+# =============================================================================
+
+# System aliases
 alias whitespace="sed 's/ /·/g;s/\t/￫/g;s/\r/§/g;s/$/¶/g'"
 alias ls="ls -G"
 alias ll="ls -la"
@@ -266,10 +408,6 @@ alias ....="cd ../../.."
 alias acurl='curl -sS -o /dev/null -kL -w "\n       Connect To: %{remote_ip}:%{remote_port}\n\n        HTTP Code: %{http_code}\n     HTTP Version: %{http_version}\n    Download Size: %{size_download} bytes\n\n\n   DNS Resolution: %{time_namelookup}\n      TCP Connect: %{time_connect}\n SSL Negiotiation: %{time_appconnect}\n     Pre-Transfer: %{time_pretransfer}\n       First-Byte: %{time_starttransfer}\n--------------------------\n       Total time: %{time_total}\n\n"'
 alias myip="curl -s https://ifconfig.me"
 alias localip="ipconfig getifaddr en0"
-
-# =============================================================================
-# CUSTOM FUNCTIONS
-# =============================================================================
 # Update all tools at once
 function steep() {
   echo "Updating Homebrew packages..."
