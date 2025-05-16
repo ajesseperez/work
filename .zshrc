@@ -1,10 +1,60 @@
+# =============================================================================
+# BASIC ZSH CONFIGURATION
+# =============================================================================
+# Disable EOL mark and set prompt behavior
 setopt PROMPT_CR
 setopt PROMPT_SP
 export PROMPT_EOL_MARK=""
 
-#RPROMPT="%{$fg[cyan]%}[%D{%r}]%{$reset_color%}"
+# History configuration
+HISTSIZE=50000
+SAVEHIST=10000
+HISTFILE=~/.zsh_history
+setopt EXTENDED_HISTORY       # Save command timestamp
+setopt HIST_EXPIRE_DUPS_FIRST # Delete duplicates first when HISTFILE size exceeds HISTSIZE
+setopt HIST_IGNORE_DUPS       # Don't record duplicated commands
+setopt HIST_IGNORE_SPACE      # Don't record commands starting with space
+setopt HIST_VERIFY            # Show command with history expansion before running it
+setopt SHARE_HISTORY          # Share history between sessions
+setopt APPEND_HISTORY         # Append to history instead of overwriting
 
+# Directory navigation improvements
+setopt AUTO_CD              # Auto cd if only a directory path is entered
+setopt AUTO_PUSHD           # Make cd push the old directory onto the directory stack
+setopt PUSHD_IGNORE_DUPS    # Don't push multiple copies of the same directory onto the stack
+setopt PUSHD_SILENT         # Don't print the directory stack after pushd or popd
+setopt PUSHD_TO_HOME        # Push to home directory when no argument is given
 
+# =============================================================================
+# OH-MY-ZSH CONFIGURATION
+# =============================================================================
+# Path to your oh-my-zsh installation
+export ZSH="/Users/jesse.perez/.oh-my-zsh"
+
+# Theme configuration
+ZSH_THEME="robbyrussell"
+
+# Plugins (add more for increased functionality)
+plugins=(
+    git
+    kubectl
+    docker
+    terraform
+    python
+    macos
+    brew
+    zsh-autosuggestions
+    zsh-syntax-highlighting
+    fzf
+    colored-man-pages
+)
+
+# Load Oh-My-Zsh
+source $ZSH/oh-my-zsh.sh
+
+# =============================================================================
+# COMMAND EXECUTION TIMER
+# =============================================================================
 zmodload zsh/datetime
 
 prompt_preexec() {
@@ -36,180 +86,150 @@ prompt_precmd() {
     unset prompt_elapsed_time
   fi
 
-
   echo -e "##### ${prompt_prexec_starttime} - ${prompt_elapsed_time} - $(date +'%I:%M:%S %p') #####" | fmt -c -w $COLUMNS
 }
-
-#setopt nopromptbang prompt{cr,percent,sp,subst}
 
 autoload -Uz add-zsh-hook
 add-zsh-hook preexec prompt_preexec
 add-zsh-hook precmd prompt_precmd
 
-#RPS1='%F{cyan}${prompt_prexec_starttime} - ${prompt_elapsed_time} - $(date +"%I:%M:%S %p")%F{none}'
-
-
-
-# If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:/usr/local/bin:$PATH
-
-# Path to your oh-my-zsh installation.
-export ZSH="/Users/jesse.perez/.oh-my-zsh"
-
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="robbyrussell"
-
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
-
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
-
-# Uncomment the following line to disable bi-weekly auto-update checks.
-# DISABLE_AUTO_UPDATE="true"
-
-# Uncomment the following line to automatically update without prompting.
-# DISABLE_UPDATE_PROMPT="true"
-
-# Uncomment the following line to change how often to auto-update (in days).
-# export UPDATE_ZSH_DAYS=13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(git)
-
-source $ZSH/oh-my-zsh.sh
-
-# User configuration
-
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
-
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
-
-autoload -U +X bashcompinit && bashcompinit
-complete -o nospace -C /usr/local/bin/terraform terraform
-
-USE_GKE_GCLOUD_AUTH_PLUGIN=True
-# The next line updates PATH for the Google Cloud SDK.
-if [ -f '/Users/jesse.perez/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/jesse.perez/google-cloud-sdk/path.zsh.inc'; fi
-
-# The next line enables shell command completion for gcloud.
-if [ -f '/Users/jesse.perez/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/jesse.perez/google-cloud-sdk/completion.zsh.inc'; fi
-source <(kubectl completion zsh)
-
-
-# Fix for Gcloud SDK
-export PATH="/usr/local/opt/python@3.8/bin:$PATH"
-alias python=/usr/local/opt/python@3.8/bin/python3
-export CLOUDSDK_PYTHON=python3
-
-function steep {
-  brew upgrade
-  brew upgrade --cask
-  gcloud components update --quiet
+# =============================================================================
+# PATH CONFIGURATION (consolidated)
+# =============================================================================
+# Add all path modifications in one place for easier maintenance
+path_prepend() {
+  if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
+    PATH="$1:$PATH"
+  fi
 }
 
-function killChrome {
-   killall "Google Chrome"
-   killall "chromedriver"
-}
+# Add paths in order of precedence
+path_prepend "$HOME/bin"
+path_prepend "/usr/local/bin"
+path_prepend "/usr/local/opt/curl/bin"
+path_prepend "/usr/local/opt/python@3.8/bin"
 
-alias whitespace="sed 's/ /·/g;s/\t/￫/g;s/\r/§/g;s/$/¶/g'"
-export PATH="/usr/local/opt/curl/bin:$PATH"
-alias acurl='curl -sS -o /dev/null -kL -w "\n       Connect To: %{remote_ip}:%{remote_port}\n\n        HTTP Code: %{http_code}\n     HTTP Version: %{http_version}\n    Download Size: %{size_download} bytes\n\n\n   DNS Resolution: %{time_namelookup}\n      TCP Connect: %{time_connect}\n SSL Negiotiation: %{time_appconnect}\n     Pre-Transfer: %{time_pretransfer}\n       First-Byte: %{time_starttransfer}\n--------------------------\n       Total time: %{time_total}\n\n"'
-
-# 1Pass AutoComplete
-eval "$(op completion zsh)"; compdef _op op
-
-
-function jwt_decode(){
-    jq -R 'split(".") | .[1] | @base64d | fromjson' <<< "$1"
-}
-function pr() {
-  image="$1"
-  gcloud auth print-access-token | podman login -u oauth2accesstoken --password-stdin gcr.io
-  podman run -it --user 0 --entrypoint /bin/sh -e TERM=xterm -e COLUMNS=$(tput cols) -e LINES=$(tput lines) "$image" -c "clear; (bash || ash || zsh || sh)"
-}
-alias python=python3
+# Pyenv configuration
 export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"
+path_prepend "$PYENV_ROOT/bin"
 eval "$(pyenv init - zsh)"
 
-cdf() {
+# Export final PATH
+export PATH
+
+# =============================================================================
+# GOOGLE CLOUD SDK CONFIGURATION
+# =============================================================================
+# Only source Google Cloud SDK if it exists
+export USE_GKE_GCLOUD_AUTH_PLUGIN=True
+export CLOUDSDK_PYTHON=python3
+
+if [ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]; then
+  source "$HOME/google-cloud-sdk/path.zsh.inc"
+fi
+
+if [ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]; then
+  source "$HOME/google-cloud-sdk/completion.zsh.inc"
+fi
+
+# =============================================================================
+# TOOL COMPLETIONS
+# =============================================================================
+# Bash completion compatibility
+autoload -U +X bashcompinit && bashcompinit
+
+# Tool-specific completions
+if command -v terraform &> /dev/null; then
+  complete -o nospace -C /usr/local/bin/terraform terraform
+fi
+
+if command -v kubectl &> /dev/null; then
+  source <(kubectl completion zsh)
+fi
+
+# 1Password completion
+if command -v op &> /dev/null; then
+  eval "$(op completion zsh)"
+  compdef _op op
+fi
+
+# =============================================================================
+# ALIASES
+# =============================================================================
+# System aliases
+alias python=python3
+alias whitespace="sed 's/ /·/g;s/\t/￫/g;s/\r/§/g;s/$/¶/g'"
+alias ls="ls -G"
+alias ll="ls -la"
+alias la="ls -a"
+alias ..="cd .."
+alias ...="cd ../.."
+alias ....="cd ../../.."
+
+# Network aliases
+alias acurl='curl -sS -o /dev/null -kL -w "\n       Connect To: %{remote_ip}:%{remote_port}\n\n        HTTP Code: %{http_code}\n     HTTP Version: %{http_version}\n    Download Size: %{size_download} bytes\n\n\n   DNS Resolution: %{time_namelookup}\n      TCP Connect: %{time_connect}\n SSL Negiotiation: %{time_appconnect}\n     Pre-Transfer: %{time_pretransfer}\n       First-Byte: %{time_starttransfer}\n--------------------------\n       Total time: %{time_total}\n\n"'
+alias myip="curl -s https://ifconfig.me"
+alias localip="ipconfig getifaddr en0"
+
+# =============================================================================
+# CUSTOM FUNCTIONS
+# =============================================================================
+# Update all tools at once
+function steep() {
+  echo "Updating Homebrew packages..."
+  brew upgrade
+  echo "Updating Homebrew casks..."
+  brew upgrade --cask
+  echo "Updating Google Cloud components..."
+  if command -v gcloud &> /dev/null; then
+    gcloud components update --quiet
+  else
+    echo "gcloud not installed, skipping"
+  fi
+  echo "Update complete!"
+}
+
+# Kill Chrome processes
+function killChrome() {
+  echo "Killing Chrome processes..."
+  killall "Google Chrome" 2>/dev/null
+  killall "chromedriver" 2>/dev/null
+  echo "Done"
+}
+
+# JWT decoder
+function jwt_decode() {
+  jq -R 'split(".") | .[1] | @base64d | fromjson' <<< "$1"
+}
+
+# Container explorer
+function pr() {
+  if [ -z "$1" ]; then
+    echo "Usage: pr <image>"
+    return 1
+  fi
+  
+  image="$1"
+  echo "Logging into container registry..."
+  gcloud auth print-access-token | podman login -u oauth2accesstoken --password-stdin gcr.io
+  echo "Running container $image..."
+  podman run -it --user 0 --entrypoint /bin/sh -e TERM=xterm -e COLUMNS=$(tput cols) -e LINES=$(tput lines) "$image" -c "clear; (bash || ash || zsh || sh)"
+}
+
+# Fuzzy find and cd into repo
+function cdf() {
   local target
   target=$(find ~/Desktop/Repos.nosync -type d -iname "*$1*" 2>/dev/null | fzf)
 
   if [ -n "$target" ]; then
     cd "$target"
+    echo "Changed to $target"
   else
     echo "No matching directory found."
   fi
 }
 
+# Change git commit message while preserving metadata
 function change_commit_message() {
   if [[ $# -lt 2 ]]; then
     echo "Usage: change_commit_message <commit_hash> \"New commit message\""
@@ -218,6 +238,12 @@ function change_commit_message() {
 
   local commit_hash="$1"
   local new_message="$2"
+
+  # Check if hash exists
+  if ! git rev-parse --verify "$commit_hash" &>/dev/null; then
+    echo "Error: Commit hash $commit_hash does not exist"
+    return 1
+  fi
 
   # Fetch original author and date
   local author_name=$(git show -s --format='%an' "$commit_hash")
@@ -238,3 +264,23 @@ function change_commit_message() {
 
   echo "✅ Commit message updated and original metadata preserved."
 }
+
+# Quick find function - search for files in current directory
+function qf() {
+  find . -type f -name "*$1*" | grep -v "node_modules\|.git"
+}
+
+# =============================================================================
+# FINAL SETTINGS & ENVIRONMENT VARIABLES
+# =============================================================================
+# Set editor preference
+export EDITOR='vim'
+export VISUAL='vim'
+
+# Enable color support
+export CLICOLOR=1
+export LSCOLORS=ExFxBxDxCxegedabagacad
+
+# Better command history search with up/down arrows
+bindkey '^[[A' history-beginning-search-backward
+bindkey '^[[B' history-beginning-search-forward
